@@ -27,7 +27,7 @@ def main():
         )
 
 
-        ruc_input.send_keys("20605059849")
+        ruc_input.send_keys("20601460913")
 
                 # Hacer clic en el botón de buscar
         btn_consultar = driver.find_element(By.ID, "btnAceptar")
@@ -133,14 +133,28 @@ def main():
         btn_consultar.click()
 
         print("Extrayendo información...")
+                # Esperar a que la tabla de resultados principal aparezca
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.NAME, "formEnviar"))
+        )
 
         ##Traer en archivo .html  el contenido de la pagina
-        cantidad_content = driver.page_source
-        with open("cantidad.html", "w", encoding="utf-8") as file:
-            file.write(cantidad_content)
+        ##cantidad_content = driver.page_source
+        #with open("cantidad.html", "w", encoding="utf-8") as file:
+        #    file.write(cantidad_content)
         
-        print("Contenido guardado en cantidad.html")
+        #print("Contenido guardado en cantidad.html")
 
+        #Extraer del tbody de la tabla de cantidad , el ulitmo  dato de numero de trabajadores y numero de prestadores de servicio
+        xpath_cantidad_trabajadores="//tbody/tr/td[2]"
+        elemento_td_cantidad_trabajadores = driver.find_element(By.XPATH, xpath_cantidad_trabajadores)
+        texto_completo_cantidad_trabajadores = elemento_td_cantidad_trabajadores.text
+        cantidad_trabajadores=texto_completo_cantidad_trabajadores.strip()
+
+        xpath_cantidad_prestadores_servicio="//tbody/tr/td[4]"
+        elemento_td_cantidad_prestadores_servicio = driver.find_element(By.XPATH, xpath_cantidad_prestadores_servicio)
+        texto_completo_cantidad_prestadores_servicio = elemento_td_cantidad_prestadores_servicio.text
+        cantidad_prestadores_servicio=texto_completo_cantidad_prestadores_servicio.strip()
 
         print(f"La Razón Social es: {razon_social}") 
         print(f"El Nombre Comercial es: {texto_completo_nombre_comercial}") 
@@ -150,6 +164,8 @@ def main():
         print(f"La Dirección es: {direccion}") 
         print(f"El Rubro es: {rubro}") 
         print(f"Es agente de retencion : {padrones}") 
+        print(f"La cantidad de trabajadores es: {cantidad_trabajadores}") 
+        print(f"La cantidad de prestadores de servicio es: {cantidad_prestadores_servicio}") 
     except Exception as e:
         print(f"Error: {e}")
     finally:
