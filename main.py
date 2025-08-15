@@ -27,7 +27,7 @@ def main():
         )
 
 
-        ruc_input.send_keys("20601460913")
+        ruc_input.send_keys("20512081372")
 
                 # Hacer clic en el botón de buscar
         btn_consultar = driver.find_element(By.ID, "btnAceptar")
@@ -77,6 +77,11 @@ def main():
         xpath_nombre_comercial = "//h4[contains(text(), 'Nombre Comercial:')]/parent::div/following-sibling::div/p"
         elemento_p_nombre_comercial = driver.find_element(By.XPATH, xpath_nombre_comercial)
         texto_completo_nombre_comercial = elemento_p_nombre_comercial.text
+
+        xpath_fecha_inicio_actividades = "//h4[contains(text(), 'Fecha de Inicio de Actividades:')]/parent::div/following-sibling::div/p"
+        elemento_p_fecha_inicio_actividades = driver.find_element(By.XPATH, xpath_fecha_inicio_actividades)
+        texto_completo_fecha_inicio_actividades = elemento_p_fecha_inicio_actividades.text
+        fecha_inicio_actividades = texto_completo_fecha_inicio_actividades.strip()
 
 
         ##Lógica de domicilio fiscal
@@ -145,19 +150,93 @@ def main():
         
         #print("Contenido guardado en cantidad.html")
 
-        #Extraer del tbody de la tabla de cantidad , el ulitmo  dato de numero de trabajadores y numero de prestadores de servicio
-        xpath_cantidad_trabajadores="//tbody/tr/td[2]"
-        elemento_td_cantidad_trabajadores = driver.find_element(By.XPATH, xpath_cantidad_trabajadores)
-        texto_completo_cantidad_trabajadores = elemento_td_cantidad_trabajadores.text
-        cantidad_trabajadores=texto_completo_cantidad_trabajadores.strip()
+        # Extraer del tbody de la tabla de cantidad el último dato de número de trabajadores y número de prestadores de servicio
+        cantidad_trabajadores = "Sin datos"
+        cantidad_prestadores_servicio = "Sin datos"
+        
+        try:
+            # Primero verificar si existe al menos una fila en la tabla
+            xpath_verificar_filas = "//table[@class='table']//tbody/tr"
+            filas = driver.find_elements(By.XPATH, xpath_verificar_filas)
+            
+            if len(filas) > 0:
+                print(f"Se encontraron {len(filas)} filas en la tabla")
+                # Si hay filas, obtener la última
+                xpath_cantidad_trabajadores = "//table[@class='table']//tbody/tr[last()]/td[2]"
+                elemento_td_cantidad_trabajadores = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, xpath_cantidad_trabajadores))
+                )
+                cantidad_trabajadores = elemento_td_cantidad_trabajadores.text.strip()
+                
+                xpath_cantidad_prestadores_servicio = "//table[@class='table']//tbody/tr[last()]/td[4]"
+                elemento_td_cantidad_prestadores_servicio = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, xpath_cantidad_prestadores_servicio))
+                )
+                cantidad_prestadores_servicio = elemento_td_cantidad_prestadores_servicio.text.strip()
+            else:
+                print("No se encontraron filas en la tabla de cantidad de trabajadores")
+                
+        except Exception as e:
+            print(f"Error al extraer datos de cantidad: {e}")
+            cantidad_trabajadores = "Sin datos"
+            cantidad_prestadores_servicio = "Sin datos"
 
-        xpath_cantidad_prestadores_servicio="//tbody/tr/td[4]"
-        elemento_td_cantidad_prestadores_servicio = driver.find_element(By.XPATH, xpath_cantidad_prestadores_servicio)
-        texto_completo_cantidad_prestadores_servicio = elemento_td_cantidad_prestadores_servicio.text
-        cantidad_prestadores_servicio=texto_completo_cantidad_prestadores_servicio.strip()
+        #Esperar 5 segundos
+        time.sleep(2)
+        btn_volver = driver.find_element(By.CLASS_NAME, "btnNuevaConsulta")
+        btn_volver.click()
+        time.sleep(2)
+
+        btn_representates_legales = driver.find_element(By.CLASS_NAME, "btnInfRepLeg")
+        btn_representates_legales.click()
+        time.sleep(2)
+
+        #with open("representantes_legales.html", "w", encoding="utf-8") as file:
+        #    file.write(driver.page_source)
+
+        # Inicializar variables del representante legal
+        documento_representante = "Sin datos"
+        nro_documento_representante = "Sin datos"
+        nombre_representante = "Sin datos"
+        cargo_representante = "Sin datos"
+        fecha_representante = "Sin datos"
+        
+        try:
+            # Buscar específicamente la fila que contiene "GERENTE GENERAL"
+            xpath_fila_gerente = "//table[@class='table']//tbody/tr[td[contains(text(), 'GERENTE GENERAL')]]"
+            fila_gerente = driver.find_element(By.XPATH, xpath_fila_gerente)
+            
+            # Obtener cada campo de la fila del gerente general
+            documento_representante = fila_gerente.find_element(By.XPATH, "./td[1]").text.strip()
+            nro_documento_representante = fila_gerente.find_element(By.XPATH, "./td[2]").text.strip()
+            nombre_representante = fila_gerente.find_element(By.XPATH, "./td[3]").text.strip()
+            cargo_representante = fila_gerente.find_element(By.XPATH, "./td[4]").text.strip()
+            fecha_representante = fila_gerente.find_element(By.XPATH, "./td[5]").text.strip()
+            
+            print("Se encontró información del Gerente General")
+            
+        except Exception as e:
+            print(f"Error al extraer datos del Gerente General: {e}")
+            # Si no se encuentra GERENTE GENERAL, intentar obtener el primer representante
+            try:
+                xpath_primera_fila = "//table[@class='table']//tbody/tr[1]"
+                primera_fila = driver.find_element(By.XPATH, xpath_primera_fila)
+                
+                documento_representante = primera_fila.find_element(By.XPATH, "./td[1]").text.strip()
+                nro_documento_representante = primera_fila.find_element(By.XPATH, "./td[2]").text.strip()
+                nombre_representante = primera_fila.find_element(By.XPATH, "./td[3]").text.strip()
+                cargo_representante = primera_fila.find_element(By.XPATH, "./td[4]").text.strip()
+                fecha_representante = primera_fila.find_element(By.XPATH, "./td[5]").text.strip()
+                
+                print("Se obtuvo información del primer representante legal")
+                
+            except Exception as e2:
+                print(f"Error al extraer datos de representantes legales: {e2}")
+
 
         print(f"La Razón Social es: {razon_social}") 
         print(f"El Nombre Comercial es: {texto_completo_nombre_comercial}") 
+        print(f"La fecha de inicio de actividades es: {fecha_inicio_actividades}") 
         print(f"El Distrito es: {distrito}") 
         print(f"El Provincia es: {provincia}") 
         print(f"El Departamento es: {departamento}") 
@@ -166,6 +245,12 @@ def main():
         print(f"Es agente de retencion : {padrones}") 
         print(f"La cantidad de trabajadores es: {cantidad_trabajadores}") 
         print(f"La cantidad de prestadores de servicio es: {cantidad_prestadores_servicio}") 
+        print(f"=== REPRESENTANTE LEGAL ===")
+        print(f"Tipo de documento: {documento_representante}")
+        print(f"Número de documento: {nro_documento_representante}")
+        print(f"Nombre: {nombre_representante}")
+        print(f"Cargo: {cargo_representante}")
+        print(f"Fecha desde: {fecha_representante}") 
     except Exception as e:
         print(f"Error: {e}")
     finally:
