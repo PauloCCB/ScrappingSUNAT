@@ -20,14 +20,13 @@ def main():
         print("Accediendo a la página de la SUNAT...")
         driver.get(url)
 
-        # Esperar a que la página se cargue completamente
         # Esperar a que el campo de RUC esté disponible y escribir el número
         ruc_input = WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.ID, "txtRuc"))
         )
 
 
-        ruc_input.send_keys("20512081372")
+        ruc_input.send_keys("20509430625")
 
                 # Hacer clic en el botón de buscar
         btn_consultar = driver.find_element(By.ID, "btnAceptar")
@@ -40,16 +39,7 @@ def main():
             EC.presence_of_element_located((By.CLASS_NAME, "list-group"))
         )
 
-        # Obtener el contenido de la página
-        #html_content = driver.page_source
 
-        #print("Pagina cargada correctamente")
-
-        # Guardar el contenido en un archivo HTML
-        #with open("inside.html", "w", encoding="utf-8") as file:
-        #    file.write(html_content)
-
-        ##print("Contenido guardado en inside.html")
         datos_ruc={}
         # Extraer Razón Social
         # La información está dentro de varios divs, usamos XPath para una búsqueda más precisa.
@@ -232,7 +222,6 @@ def main():
                 
             except Exception as e2:
                 print(f"Error al extraer datos de representantes legales: {e2}")
-
 
         print(f"La Razón Social es: {razon_social}") 
         print(f"El Nombre Comercial es: {texto_completo_nombre_comercial}") 
