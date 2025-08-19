@@ -5,17 +5,41 @@ import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options as ChromeOptions
 
-def main():
+def main(ruc_numero):
     """
     Realiza web scraping en la página de la SUNAT para obtener datos de un RUC.
+    
+    Args:
+        ruc_numero (str): Número de RUC a consultar
+        
+    Returns:
+        dict: Diccionario con toda la información del RUC
     """
     # URL de la consulta RUC de SUNAT
     url="https://e-consultaruc.sunat.gob.pe/cl-ti-itmrconsruc/FrameCriterioBusquedaWeb.jsp"
     driver=None;
     try:
+
+    # --- INICIO DE LA MODIFICACIÓN ---
+        options = ChromeOptions()
+        
+        # Añade un User-Agent para simular un navegador real
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+        options.add_argument(f'user-agent={user_agent}')
+        
+        # Opciones para evitar la detección de automatización
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        
+        # Iniciar el navegador maximizado
+        options.add_argument("--start-maximized")
+        # --- FIN DE LA MODIFICACIÓN ---
+
+
         service = ChromeService(executable_path=ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service)
+        driver = webdriver.Chrome(service=service, options=options)
 
         print("Accediendo a la página de la SUNAT...")
         driver.get(url)
@@ -26,7 +50,7 @@ def main():
         )
 
 
-        ruc_input.send_keys("20509430625")
+        ruc_input.send_keys(ruc_numero)
 
                 # Hacer clic en el botón de buscar
         btn_consultar = driver.find_element(By.ID, "btnAceptar")
@@ -72,6 +96,11 @@ def main():
         elemento_p_fecha_inicio_actividades = driver.find_element(By.XPATH, xpath_fecha_inicio_actividades)
         texto_completo_fecha_inicio_actividades = elemento_p_fecha_inicio_actividades.text
         fecha_inicio_actividades = texto_completo_fecha_inicio_actividades.strip()
+
+        xpath_tipo_contribuyente = "//h4[contains(text(), 'Tipo Contribuyente:')]/parent::div/following-sibling::div/p"
+        elemento_p_tipo_contribuyente = driver.find_element(By.XPATH, xpath_tipo_contribuyente)
+        texto_completo_tipo_contribuyente = elemento_p_tipo_contribuyente.text
+        tipo_contribuyente = texto_completo_tipo_contribuyente.strip()
 
 
         ##Lógica de domicilio fiscal
@@ -193,7 +222,7 @@ def main():
         
         try:
             # Buscar específicamente la fila que contiene "GERENTE GENERAL"
-            xpath_fila_gerente = "//table[@class='table']//tbody/tr[td[contains(text(), 'GERENTE GENERAL')]]"
+            xpath_fila_gerente = "//table[@class='table']//tbody/tr[td[contains(text(), 'GERENTE')]]"
             fila_gerente = driver.find_element(By.XPATH, xpath_fila_gerente)
             
             # Obtener cada campo de la fila del gerente general
@@ -223,28 +252,70 @@ def main():
             except Exception as e2:
                 print(f"Error al extraer datos de representantes legales: {e2}")
 
-        print(f"La Razón Social es: {razon_social}") 
-        print(f"El Nombre Comercial es: {texto_completo_nombre_comercial}") 
-        print(f"La fecha de inicio de actividades es: {fecha_inicio_actividades}") 
-        print(f"El Distrito es: {distrito}") 
-        print(f"El Provincia es: {provincia}") 
-        print(f"El Departamento es: {departamento}") 
-        print(f"La Dirección es: {direccion}") 
-        print(f"El Rubro es: {rubro}") 
-        print(f"Es agente de retencion : {padrones}") 
-        print(f"La cantidad de trabajadores es: {cantidad_trabajadores}") 
-        print(f"La cantidad de prestadores de servicio es: {cantidad_prestadores_servicio}") 
-        print(f"=== REPRESENTANTE LEGAL ===")
-        print(f"Tipo de documento: {documento_representante}")
-        print(f"Número de documento: {nro_documento_representante}")
-        print(f"Nombre: {nombre_representante}")
-        print(f"Cargo: {cargo_representante}")
-        print(f"Fecha desde: {fecha_representante}") 
+        # Crear el diccionario de respuesta
+        resultado = {
+            "numeroDocumento": ruc_numero,
+            "razonSocial": razon_social,
+            "nombreComercial": texto_completo_nombre_comercial if texto_completo_nombre_comercial != "-" else "-",
+            "direccion": direccion,
+            "distrito": distrito,
+            "provincia": provincia,
+            "departamento": departamento,
+            "fechaInicioActividades": fecha_inicio_actividades,
+            "EsAgenteRetencion": padrones,
+            "actividadEconomica": rubro,
+            "tipoContribuyente": tipo_contribuyente,
+            "numeroTrabajadores": cantidad_trabajadores,
+            "prestadoresdeServicios": cantidad_prestadores_servicio,
+            "representanteLegal": {
+                "tipoDocumento": documento_representante,
+                "nroDocumento": nro_documento_representante,
+                "nombre": nombre_representante,
+                "cargo": cargo_representante,
+                "fechaDesde": fecha_representante
+            }
+        }
+        
+        print("Información extraída exitosamente:")
+        print(f"RUC: {resultado['numeroDocumento']}")
+        print(f"Razón Social: {resultado['razonSocial']}")
+        print(f"Representante Legal: {resultado['representanteLegal']['nombre']}")
+        
+        return resultado 
     except Exception as e:
         print(f"Error: {e}")
+        return {
+            "numeroDocumento": ruc_numero,
+            "razonSocial": "Error en consulta",
+            "nombreComercial": "Sin datos",
+            "direccion": "Sin datos",
+            "distrito": "Sin datos",
+            "provincia": "Sin datos",
+            "departamento": "Sin datos",
+            "fechaInicioActividades": "Sin datos",
+            "EsAgenteRetencion": False,
+            "actividadEconomica": "Sin datos",
+            "tipoContribuyente": "Sin datos",
+            "numeroTrabajadores": "Sin datos",
+            "prestadoresdeServicios": "Sin datos",
+            "representanteLegal": {
+                "tipoDocumento": "Sin datos",
+                "nroDocumento": "Sin datos",
+                "nombre": "Sin datos",
+                "cargo": "Sin datos",
+                "fechaDesde": "Sin datos"
+            }
+        }
     finally:
         if driver:
             driver.quit()
 
 if __name__ == "__main__":
-    main()
+    # Ejemplo de uso
+    ruc_consulta = "20525955096"
+    resultado = main(ruc_consulta)
+    
+    if resultado:
+        import json
+        print("\n=== RESULTADO EN FORMATO JSON ===")
+        print(json.dumps(resultado, indent=2, ensure_ascii=False))
